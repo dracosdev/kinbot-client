@@ -12,6 +12,12 @@ document.getElementById('open-sidebar-btn').addEventListener('click', toggleSide
 document.querySelector('#sidebar .close-btn').addEventListener('click', closeSidebar);
 document.addEventListener('click', closeSidebarOnClickOutside);
 
+marked.setOptions({
+    highlight: function (code, lang) {
+        return hljs.highlightAuto(code, [lang]).value;
+    }
+});
+
 function toggleApiKeyLock() {
     const apiKeyInput = document.getElementById('api-key');
     const lockButton = document.getElementById('lock-api-key-button');
@@ -59,6 +65,7 @@ function sendMessage() {
     const apiKey = document.getElementById('api-key').value;
     const userInput = document.getElementById('user-input').value;
     const model = document.getElementById('model-selector').value;
+    const loader = document.getElementById('loader');
 
     if (!apiKey) {
         alert('Please enter your API key.');
@@ -70,6 +77,7 @@ function sendMessage() {
     }
 
     appendMessage('user', userInput);
+    loader.style.display = 'block';
 
     fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -84,12 +92,17 @@ function sendMessage() {
     })
     .then(response => response.json())
     .then(data => {
+        if (data.error) {
+            throw new Error(data.error.message);
+        }
         const botResponse = data.choices[0].message.content.trim();
-        appendMessage('bot', botResponse);
+        appendMessage('bot', botResponse, true);
+        loader.style.display = 'none';
     })
     .catch(error => {
         console.error('Error:', error);
-        appendMessage('bot', 'An error occurred. Please try again.');
+        appendMessage('bot', `An error occurred: ${error.message}`);
+        loader.style.display = 'none';
     });
 
     document.getElementById('user-input').value = '';
@@ -100,6 +113,7 @@ function processFile() {
     const fileInput = document.getElementById('file-input');
     const file = fileInput.files[0];
     const model = document.getElementById('model-selector').value;
+    const loader = document.getElementById('loader');
 
     if (!apiKey) {
         alert('Please enter your API key.');
@@ -116,6 +130,7 @@ function processFile() {
         const fileContent = e.target.result;
 
         appendMessage('user', 'Uploading file and processing...');
+        loader.style.display = 'block';
 
         fetch('https://api.openai.com/v1/files', {
             method: 'POST',
@@ -131,8 +146,7 @@ function processFile() {
         .then(response => response.json())
         .then(data => {
             if (data.error) {
-                appendMessage('bot', 'Error: ' + data.error.message);
-                return;
+                throw new Error(data.error.message);
             }
 
             // File uploaded, now let's process it
@@ -153,30 +167,73 @@ function processFile() {
             })
             .then(response => response.json())
             .then(data => {
+                if (data.error) {
+                    throw new Error(data.error.message);
+                }
                 const botResponse = data.choices[0].text.trim();
-                appendMessage('bot', botResponse);
+                appendMessage('bot', botResponse, true);
+                loader.style.display = 'none';
             })
             .catch(error => {
                 console.error('Error:', error);
-                appendMessage('bot', 'An error occurred while processing the file. Please try again.');
+                appendMessage('bot', `An error occurred while processing the file: ${error.message}`);
+                loader.style.display = 'none';
             });
         })
         .catch(error => {
             console.error('Error:', error);
-            appendMessage('bot', 'An error occurred while uploading the file. Please try again.');
+            appendMessage('bot', `An error occurred while uploading the file: ${error.message}`);
+            loader.style.display = 'none';
         });
     };
 
     reader.readAsText(file);
 }
 
-function appendMessage(sender, message) {
+function appendMessage(sender, message, isMarkdown = true) {
     const messageContainer = document.createElement('div');
     messageContainer.classList.add('message');
     messageContainer.classList.add(sender === 'user' ? 'user-message' : 'bot-message');
-    messageContainer.textContent = message;
+
+    if (isMarkdown) {
+        // Detect and process code blocks
+        const codeBlockPattern = /```(.*?)\n([\s\S]*?)```/g;
+        let match;
+        let lastIndex = 0;
+        let html = '';
+
+        while ((match = codeBlockPattern.exec(message)) !== null) {
+            const [fullMatch, lang, code] = match;
+            html += marked.parse(message.slice(lastIndex, match.index));
+            html += `<pre><code class="hljs ${lang}">${escapeHtml(code)}</code></pre>`;
+            lastIndex = match.index + fullMatch.length;
+        }
+
+        html += marked.parse(message.slice(lastIndex));
+        messageContainer.innerHTML = html;
+    } else {
+        messageContainer.textContent = message;
+    }
+
     document.getElementById('messages').appendChild(messageContainer);
     document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+
+    // Re-highlighting code blocks
+    document.querySelectorAll('pre code').forEach((block) => {
+        hljs.highlightBlock(block);
+    });
+}
+
+function escapeHtml(text) {
+    return text.replace(/[&<>"']/g, function(m) {
+        return {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        }[m];
+    });
 }
 
 function toggleTheme() {

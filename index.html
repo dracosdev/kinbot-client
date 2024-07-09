@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OpenAI ChatGPT Client</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.3.1/styles/default.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.3.1/highlight.min.js"></script>
 </head>
 <body class="dark-theme">
     <div id="open-sidebar-btn">&#9776;</div>
@@ -29,6 +32,7 @@
         </div>
         <select id="model-selector"></select>
         <div id="messages"></div>
+        <div id="loader"></div>
         <div id="input-container">
             <label for="file-input" id="file-label">
                 <img src="54848.png" alt="Attach">
