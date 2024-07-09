@@ -240,10 +240,14 @@ function toggleTheme() {
     const body = document.body;
     const sidebar = document.getElementById('sidebar');
     const isDark = body.classList.contains('dark-theme');
+    const themeTitle = document.getElementById('theme-title');
+    const isTitleDark = themeTitle.classList.contains('dark-theme');
     body.classList.toggle('dark-theme', !isDark);
     body.classList.toggle('light-theme', isDark);
     sidebar.classList.toggle('dark-theme', !isDark);
     sidebar.classList.toggle('light-theme', isDark);
+    themeTitle.classList.toggle('dark-title');
+    themeTitle.classList.toggle('light-title');
 }
 
 function toggleSidebar() {

@@ -105,6 +105,15 @@ body.light-theme #messages {
 .user-message {
     text-align: right;
 }
+
+.light-title::after {
+    content: " light";
+}
+
+.dark-title::after {
+    content: " dark";
+}
+
 body.dark-theme .user-message {
     background-color: #4b4b4b;
 }
